@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Project-specific ignores
+# SQLite baseline databases
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+
+# Execution log history
+logs/*.log
+
+# Reports
+reports/*
+!reports/.gitkeep
