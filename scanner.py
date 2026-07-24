@@ -67,6 +67,7 @@ class FolderScanner:
         Returns:
             Tuple of (total_files_scanned, duration_seconds)
         """
+        folder_path = folder_path.resolve()
         self.logger.info(f"Starting baseline creation for: {folder_path}")
         start_time = time.time()
         
@@ -77,6 +78,7 @@ class FolderScanner:
         if total_files == 0:
             # Handle empty folder scenario
             self.db_manager.clear_baseline()
+
             duration = time.time() - start_time
             self.logger.info("Baseline created successfully (empty directory).")
             return 0, duration
@@ -127,11 +129,18 @@ class FolderScanner:
             Tuple of (scan_results_list, status_counts_dict, duration_seconds)
             where scan_results_list contains dicts with keys: status, filename, filepath, sha256, filesize.
         """
+        import os
+        is_windows = (os.name == 'nt')
+        
+        folder_path = folder_path.resolve()
         self.logger.info(f"Starting scan comparison for folder: {folder_path}")
         start_time = time.time()
         
         # 1. Fetch current baseline from Database
         baseline = self.db_manager.get_baseline()
+        
+        # Map baseline keys case-insensitively on Windows
+        baseline_lookup = {k.lower() if is_windows else k: v for k, v in baseline.items()}
         
         # 2. Gather current files in folder
         current_files = self.list_files(folder_path)
@@ -149,7 +158,8 @@ class FolderScanner:
                 progress_callback(i, total_files, str(file_path))
                 
             abs_path_str = str(file_path.resolve())
-            scanned_paths.add(abs_path_str)
+            abs_path_key = abs_path_str.lower() if is_windows else abs_path_str
+            scanned_paths.add(abs_path_key)
             
             try:
                 # Get current stats & hash
@@ -158,7 +168,7 @@ class FolderScanner:
                 modified_time = stat.st_mtime
                 
                 # Check if it exists in baseline
-                if abs_path_str not in baseline:
+                if abs_path_key not in baseline_lookup:
                     # Added File
                     # Hash file
                     file_hash = calculate_sha256(file_path, config.HASH_CHUNK_SIZE) or "UNKNOWN"
@@ -173,7 +183,7 @@ class FolderScanner:
                     counts["Added"] += 1
                 else:
                     # Check for Modification (fast check by size or modified time, then hash check)
-                    baseline_entry = baseline[abs_path_str]
+                    baseline_entry = baseline_lookup[abs_path_key]
                     
                     # Quick size/time comparison to avoid unnecessary hashing
                     is_modified_fast = (
@@ -207,7 +217,8 @@ class FolderScanner:
             except ValueError:
                 is_subpath = False
                 
-            if is_subpath and path_str not in scanned_paths:
+            path_key = path_str.lower() if is_windows else path_str
+            if is_subpath and path_key not in scanned_paths:
                 results.append({
                     "status": "Deleted",
                     "filename": baseline_entry["filename"],
