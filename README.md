@@ -90,3 +90,5 @@ python main.py
 - **SMTP Email alerts**: Send automated alerts to admins when critical alterations are detected.
 - **Multi-threaded hashing**: Implement a concurrent thread-pool for ultra-fast processing of massive data structures.
 - **PDF Exporting**: Implement reportlab PDF formatted reporting sheets.
+
+## Built for ASP Steel Plant Technical Internship
